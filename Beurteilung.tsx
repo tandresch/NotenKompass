@@ -140,7 +140,7 @@ export function BeurteilungScreen({
 
   const removeDescriptionField = (id: string) => {
     if (descriptions.length <= 1) {
-      Alert.alert("Error", "You must have at least one description field.");
+      Alert.alert("Error", "Sie müssen mindestens ein Bewertungskriterium haben.");
       return;
     }
     setDescriptions(descriptions.filter((d) => d.id !== id));
@@ -154,18 +154,18 @@ export function BeurteilungScreen({
 
   const saveToFirebase = async () => {
     if (!documentName.trim()) {
-      Alert.alert("Error", "Please enter a document name.");
+      Alert.alert("Error", "Bitte geben Sie einen Namen für die Beurteilung ein.");
       return;
     }
 
     if (!selectedSchoolSubject) {
-      Alert.alert("Error", "Please select a school subject.");
+      Alert.alert("Error", "Schulfach auswählen.");
       return;
     }
 
     const filledDescriptions = descriptions.filter((d) => d.text.trim());
     if (filledDescriptions.length === 0) {
-      Alert.alert("Error", "Please add at least one description.");
+      Alert.alert("Error", "Bitte fügen Sie mindestens ein Bewertungskriterium hinzu.");
       return;
     }
 
@@ -181,7 +181,7 @@ export function BeurteilungScreen({
 
       await set(ref(database, `beurteilungen/${documentKey}`), documentData);
 
-      Alert.alert("Success", "Document saved successfully!");
+      Alert.alert("Success", "Beurteilung erfolgreich gespeichert!");
       setDocumentName("");
       setDescriptions([
         { id: "1", text: "" },
@@ -196,7 +196,7 @@ export function BeurteilungScreen({
       onSaveSuccess();
     } catch (error) {
       console.error("Error saving document:", error);
-      Alert.alert("Error", "Failed to save document. Please try again.");
+      Alert.alert("Error", "Beurteilung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.");
     } finally {
       setIsSaving(false);
     }
@@ -204,26 +204,26 @@ export function BeurteilungScreen({
 
   const deleteDocument = async () => {
     if (!selectedDocument) {
-      Alert.alert("Error", "No document selected.");
+      Alert.alert("Error", "Keine Beurteilung ausgewählt.");
       return;
     }
 
     Alert.alert(
       "Confirm Delete",
-      "Are you sure you want to delete this document?",
+      "Sind Sie sicher, dass Sie diese Beurteilung löschen möchten?",
       [
-        { text: "Cancel", onPress: () => {} },
+        { text: "Abbrechen", onPress: () => {} },
         {
-          text: "Delete",
+          text: "Löschen",
           onPress: async () => {
             try {
               await remove(ref(database, `beurteilungen/${selectedDocument}`));
-              Alert.alert("Success", "Document deleted successfully!");
+              Alert.alert("Success", "Beurteilung erfolgreich gelöscht!");
               createNewDocument();
               loadExistingDocuments();
             } catch (error) {
               console.error("Error deleting document:", error);
-              Alert.alert("Error", "Failed to delete document.");
+              Alert.alert("Error", "Beurteilung konnte nicht gelöscht werden.");
             }
           },
           style: "destructive",
@@ -239,21 +239,23 @@ export function BeurteilungScreen({
         { paddingTop: insets.top, paddingBottom: insets.bottom },
       ]}
     >
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}>
           <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Beurteilung</Text>
+        <Text style={styles.headerTitle}>Beurteilungen</Text>
         <View style={{ width: 28 }} />
       </View>
       <View style={styles.section}>
-        <Text style={styles.label}>School Subject</Text>
+        <Text style={styles.label}>Schulfach</Text>
         <TouchableOpacity
           style={styles.dropdownButton}
           onPress={() => setShowSubjectDropdown(!showSubjectDropdown)}
         >
           <Text style={styles.dropdownButtonText}>
-            {selectedSchoolSubject || "Select a subject..."}
+            {selectedSchoolSubject || "Fach auswählen..."}
           </Text>
           <MaterialCommunityIcons
             name={showSubjectDropdown ? "chevron-up" : "chevron-down"}
@@ -283,15 +285,14 @@ export function BeurteilungScreen({
           </View>
         )}
       </View>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
-        <View style={styles.section}>
-          <Text style={styles.label}>Existing Documents</Text>
+              <View style={styles.section}>
+          <Text style={styles.label}>Bestehende Beurteilungen</Text>
           <TouchableOpacity
             style={styles.dropdownButton}
             onPress={() => setShowDropdown(!showDropdown)}
           >
             <Text style={styles.dropdownButtonText}>
-              {selectedDocument ? selectedDocument : "Select a document..."}
+              {selectedDocument ? selectedDocument : "Beurteilung auswählen..."}
             </Text>
             <MaterialCommunityIcons
               name={showDropdown ? "chevron-up" : "chevron-down"}
@@ -307,7 +308,7 @@ export function BeurteilungScreen({
                 onPress={() => createNewDocument()}
               >
                 <MaterialCommunityIcons name="plus" size={20} color="#3498db" />
-                <Text style={styles.dropdownItemText}>Create New Document</Text>
+                <Text style={styles.dropdownItemText}>Neue Beurteilung erstellen</Text>
               </TouchableOpacity>
               {existingDocuments.map((doc) => (
                 <TouchableOpacity
@@ -326,7 +327,7 @@ export function BeurteilungScreen({
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Document Name</Text>
+          <Text style={styles.label}>Bewertungs auswählen</Text>
           <TextInput
             style={styles.textInput}
             placeholder="e.g., Ringenturnen"
@@ -338,12 +339,12 @@ export function BeurteilungScreen({
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Descriptions</Text>
+          <Text style={styles.label}>Bewertungskriterien</Text>
           {descriptions.map((item, index) => (
             <View key={item.id} style={styles.descriptionRow}>
               <TextInput
                 style={styles.descriptionInput}
-                placeholder={`Description ${index + 1}`}
+                placeholder={`Bewertungskriterien ${index + 1}`}
                 placeholderTextColor="#999"
                 value={item.text}
                 onChangeText={(text) => updateDescriptionText(item.id, text)}
@@ -368,7 +369,7 @@ export function BeurteilungScreen({
           onPress={addDescriptionField}
         >
           <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Add Description Field</Text>
+          <Text style={styles.addButtonText}>Bewertungskriterium hinzufügen</Text>
         </TouchableOpacity>
 
         <View style={styles.buttonRow}>
@@ -383,7 +384,7 @@ export function BeurteilungScreen({
               color="#fff"
             />
             <Text style={styles.saveButtonText}>
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? "Speichern..." : "Speichern"}
             </Text>
           </TouchableOpacity>
 
@@ -407,13 +408,13 @@ export function BeurteilungScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#8db882",
+    backgroundColor: "#d6d9d6",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#619cdf",
     paddingHorizontal: 15,
     paddingVertical: 12,
   },
@@ -433,6 +434,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#971a1a",
+    marginTop: 10,
     marginBottom: 10,
   },
   dropdownButton: {

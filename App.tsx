@@ -35,10 +35,10 @@ const DEFAULT_STUDENTS_NAMES = [
 const { width } = Dimensions.get('window');
 const boxSize = (width - 150) / 2;
 
-function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }) {
+function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }: { onSelectSubject: (subject: string) => void; onSelectBeurteilung: () => void; subjects: string[] }) {
   const insets = useSafeAreaInsets();
 
-  const handlePress = (subject) => {
+  const handlePress = (subject: string) => {
     console.log(`Selected: ${subject}`);
     onSelectSubject(subject);
   };
@@ -52,7 +52,7 @@ function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }) {
     >
       <Text style={styles.title}>Beurteilungen          Monika Andres</Text>
       <View style={styles.grid}>
-        {subjects.map((subject) => (
+        {subjects.map((subject: string) => (
           <TouchableOpacity
             key={subject}
             style={styles.box}
@@ -67,7 +67,7 @@ function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }) {
         style={styles.beurteilungButton}
         onPress={onSelectBeurteilung}
       >
-        <Text style={styles.beurteilungButtonText}>+ Beurteilung erstellen</Text>
+        <Text style={styles.beurteilungButtonText}>Beurteilung erstellen</Text>
       </TouchableOpacity>
 
       <StatusBar hidden={false} style="light" />
@@ -150,7 +150,7 @@ export default function App() {
     }
   };
 
-  const saveGradesToFirebase = async (updatedGrades) => {
+  const saveGradesToFirebase = async (updatedGrades: any) => {
     try {
       await set(ref(database, "grades"), updatedGrades);
       setGradesData(updatedGrades);
@@ -159,7 +159,7 @@ export default function App() {
     }
   };
 
-  const handleSelectSubject = (subject) => {
+  const handleSelectSubject = (subject: string) => {
     setSelectedSubject(subject);
   };
 
