@@ -22,6 +22,7 @@ import { ref, set, get, remove } from "firebase/database";
 interface DescriptionItem {
   id: string;
   text: string;
+  maxPoints?: number;
 }
 
 export function BeurteilungScreen({
@@ -40,11 +41,11 @@ export function BeurteilungScreen({
   );
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const [descriptions, setDescriptions] = useState<DescriptionItem[]>([
-    { id: "1", text: "" },
-    { id: "2", text: "" },
-    { id: "3", text: "" },
-    { id: "4", text: "" },
-    { id: "5", text: "" },
+    { id: "1", text: "", maxPoints: undefined },
+    { id: "2", text: "", maxPoints: undefined },
+    { id: "3", text: "", maxPoints: undefined },
+    { id: "4", text: "", maxPoints: undefined },
+    { id: "5", text: "", maxPoints: undefined },
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [existingDocuments, setExistingDocuments] = useState<string[]>([]);
@@ -93,20 +94,26 @@ export function BeurteilungScreen({
         const data = snapshot.val();
         setDocumentName(data.name);
         const descItems: DescriptionItem[] = (data.descriptions || []).map(
-          (text: string, index: number) => ({
-            id: (index + 1).toString(),
-            text,
-          }),
+          (item: string | { text: string; maxPoints?: number }, index: number) => {
+            if (typeof item === 'string') {
+              return { id: (index + 1).toString(), text: item, maxPoints: undefined };
+            }
+            return {
+              id: (index + 1).toString(),
+              text: item.text,
+              maxPoints: item.maxPoints,
+            };
+          },
         );
         setDescriptions(
           descItems.length > 0
             ? descItems
             : [
-                { id: "1", text: "" },
-                { id: "2", text: "" },
-                { id: "3", text: "" },
-                { id: "4", text: "" },
-                { id: "5", text: "" },
+                { id: "1", text: "", maxPoints: undefined },
+                { id: "2", text: "", maxPoints: undefined },
+                { id: "3", text: "", maxPoints: undefined },
+                { id: "4", text: "", maxPoints: undefined },
+                { id: "5", text: "", maxPoints: undefined },
               ],
         );
         setSelectedDocument(docName);
@@ -122,11 +129,11 @@ export function BeurteilungScreen({
   const createNewDocument = () => {
     setDocumentName("");
     setDescriptions([
-      { id: "1", text: "" },
-      { id: "2", text: "" },
-      { id: "3", text: "" },
-      { id: "4", text: "" },
-      { id: "5", text: "" },
+      { id: "1", text: "", maxPoints: undefined },
+      { id: "2", text: "", maxPoints: undefined },
+      { id: "3", text: "", maxPoints: undefined },
+      { id: "4", text: "", maxPoints: undefined },
+      { id: "5", text: "", maxPoints: undefined },
     ]);
     setSelectedDocument(null);
     setIsNewDocument(true);
@@ -135,7 +142,7 @@ export function BeurteilungScreen({
 
   const addDescriptionField = () => {
     const newId = Math.max(...descriptions.map((d) => parseInt(d.id)), 0) + 1;
-    setDescriptions([...descriptions, { id: newId.toString(), text: "" }]);
+    setDescriptions([...descriptions, { id: newId.toString(), text: "", maxPoints: undefined }]);
   };
 
   const removeDescriptionField = (id: string) => {
@@ -149,6 +156,13 @@ export function BeurteilungScreen({
   const updateDescriptionText = (id: string, text: string) => {
     setDescriptions(
       descriptions.map((d) => (d.id === id ? { ...d, text } : d)),
+    );
+  };
+
+  const updateDescriptionPoints = (id: string, points: string) => {
+    const numPoints = points === "" ? undefined : parseInt(points);
+    setDescriptions(
+      descriptions.map((d) => (d.id === id ? { ...d, maxPoints: numPoints } : d)),
     );
   };
 
@@ -175,7 +189,10 @@ export function BeurteilungScreen({
       const documentData = {
         name: documentName.trim(),
         schoolSubject: selectedSchoolSubject,
-        descriptions: descriptions.map((d) => d.text.trim()),
+        descriptions: descriptions.map((d) => ({
+          text: d.text.trim(),
+          maxPoints: d.maxPoints,
+        })),
         timestamp: new Date().toISOString(),
       };
 
@@ -184,11 +201,11 @@ export function BeurteilungScreen({
       Alert.alert("Success", "Beurteilung erfolgreich gespeichert!");
       setDocumentName("");
       setDescriptions([
-        { id: "1", text: "" },
-        { id: "2", text: "" },
-        { id: "3", text: "" },
-        { id: "4", text: "" },
-        { id: "5", text: "" },
+        { id: "1", text: "", maxPoints: undefined },
+        { id: "2", text: "", maxPoints: undefined },
+        { id: "3", text: "", maxPoints: undefined },
+        { id: "4", text: "", maxPoints: undefined },
+        { id: "5", text: "", maxPoints: undefined },
       ]);
       setSelectedDocument(null);
       setIsNewDocument(true);
@@ -341,25 +358,38 @@ export function BeurteilungScreen({
         <View style={styles.section}>
           <Text style={styles.label}>Bewertungskriterien</Text>
           {descriptions.map((item, index) => (
-            <View key={item.id} style={styles.descriptionRow}>
-              <TextInput
-                style={styles.descriptionInput}
-                placeholder={`Bewertungskriterien ${index + 1}`}
-                placeholderTextColor="#999"
-                value={item.text}
-                onChangeText={(text) => updateDescriptionText(item.id, text)}
-                multiline
-              />
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => removeDescriptionField(item.id)}
-              >
-                <MaterialCommunityIcons
-                  name="delete"
-                  size={24}
-                  color="#e74c3c"
+            <View key={item.id} style={styles.descriptionContainer}>
+              <View style={styles.descriptionRow}>
+                <TextInput
+                  style={styles.descriptionInput}
+                  placeholder={`Bewertungskriterien ${index + 1}`}
+                  placeholderTextColor="#999"
+                  value={item.text}
+                  onChangeText={(text) => updateDescriptionText(item.id, text)}
+                  multiline
                 />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => removeDescriptionField(item.id)}
+                >
+                  <MaterialCommunityIcons
+                    name="delete"
+                    size={24}
+                    color="#e74c3c"
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.pointsRow}>
+                <Text style={styles.pointsLabel}>Max. Punkte (optional):</Text>
+                <TextInput
+                  style={styles.pointsInput}
+                  placeholder="z.B. 10"
+                  placeholderTextColor="#999"
+                  value={item.maxPoints?.toString() || ""}
+                  onChangeText={(text) => updateDescriptionPoints(item.id, text)}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
           ))}
         </View>
@@ -490,10 +520,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
+  descriptionContainer: {
+    marginBottom: 15,
+  },
   descriptionRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 5,
     gap: 8,
   },
   descriptionInput: {
@@ -507,6 +540,26 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     minHeight: 50,
     maxHeight: 100,
+  },
+  pointsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 8,
+    gap: 8,
+  },
+  pointsLabel: {
+    fontSize: 12,
+    color: "#666",
+  },
+  pointsInput: {
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    padding: 6,
+    fontSize: 14,
+    color: "#333",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    width: 80,
   },
   deleteButton: {
     padding: 8,

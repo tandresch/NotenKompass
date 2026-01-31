@@ -4,9 +4,11 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
-import { DetailsScreen } from "./Details";
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ScrollView } from "react-native";
 import { BeurteilungScreen } from "./Beurteilung";
+import { ErfassenScreen } from "./Erfassen";
+import { OverviewScreen } from "./Overview";
+import { BulkUploadScreen } from "./BulkUpload";
 import { database } from "./firebaseConfig";
 import { ref, get, set } from "firebase/database";
 
@@ -35,12 +37,24 @@ const DEFAULT_STUDENTS_NAMES = [
 const { width } = Dimensions.get('window');
 const boxSize = (width - 150) / 2;
 
-function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }: { onSelectSubject: (subject: string) => void; onSelectBeurteilung: () => void; subjects: string[] }) {
+function HomeScreen({
+  onSelectBeurteilung,
+  onSelectErfassen,
+  onSelectOverview,
+  onSelectBulkUpload,
+  subjects,
+}: {
+  onSelectBeurteilung: () => void;
+  onSelectErfassen: (subject: string) => void;
+  onSelectOverview: (subject: string) => void;
+  onSelectBulkUpload: () => void;
+  subjects: string[];
+}) {
   const insets = useSafeAreaInsets();
 
   const handlePress = (subject: string) => {
     console.log(`Selected: ${subject}`);
-    onSelectSubject(subject);
+    onSelectErfassen(subject);
   };
 
   return (
@@ -50,25 +64,41 @@ function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }: { onSele
         { paddingTop: insets.top, paddingBottom: insets.bottom },
       ]}
     >
-      <Text style={styles.title}>Beurteilungen          Monika Andres</Text>
-      <View style={styles.grid}>
-        {subjects.map((subject: string) => (
-          <TouchableOpacity
-            key={subject}
-            style={styles.box}
-            onPress={() => handlePress(subject)}
-          >
-            <Text style={styles.boxText}>{subject}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <ScrollView showsVerticalScrollIndicator={true}>
+        <Text style={styles.title}>Beurteilungen          Monika Andres</Text>
+        <View style={styles.grid}>
+          {subjects.map((subject: string) => (
+            <View key={subject} style={styles.boxWrapper}>
+              <TouchableOpacity
+                style={styles.box}
+                onPress={() => onSelectErfassen(subject)}
+              >
+                <Text style={styles.boxText}>{subject}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.overviewButton}
+                onPress={() => onSelectOverview(subject)}
+              >
+                <Text style={styles.overviewButtonText}>Übersicht</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
 
-      <TouchableOpacity
-        style={styles.beurteilungButton}
-        onPress={onSelectBeurteilung}
-      >
-        <Text style={styles.beurteilungButtonText}>Beurteilung erstellen</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.beurteilungButton}
+          onPress={onSelectBeurteilung}
+        >
+          <Text style={styles.beurteilungButtonText}>Beurteilung erstellen</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.bulkUploadButton}
+          onPress={onSelectBulkUpload}
+        >
+          <Text style={styles.bulkUploadButtonText}>Bulk Upload</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <StatusBar hidden={false} style="light" />
     </View>
@@ -76,8 +106,10 @@ function HomeScreen({ onSelectSubject, onSelectBeurteilung, subjects }: { onSele
 }
 
 export default function App() {
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [showBeurteilung, setShowBeurteilung] = useState(false);
+  const [showOverview, setShowOverview] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [gradesData, setGradesData] = useState({});
   const [schoolSubjects, setSchoolSubjects] = useState(DEFAULT_SCHOOL_SUBJECTS);
   const [students, setStudents] = useState(DEFAULT_STUDENTS_NAMES);
@@ -159,35 +191,52 @@ export default function App() {
     }
   };
 
-  const handleSelectSubject = (subject: string) => {
+  const handleSelectErfassen = (subject: string) => {
     setSelectedSubject(subject);
+    setShowOverview(false);
+  };
+
+  const handleSelectOverview = (subject: string) => {
+    setSelectedSubject(subject);
+    setShowOverview(true);
   };
 
   const handleBack = () => {
     setSelectedSubject(null);
     setShowBeurteilung(false);
+    setShowOverview(false);
+    setShowBulkUpload(false);
   };
 
   return (
     <SafeAreaProvider>
       {showBeurteilung ? (
         <BeurteilungScreen onBack={handleBack} schoolSubjects={schoolSubjects} />
-      ) : selectedSubject ? (
-        <DetailsScreen 
-          subject={selectedSubject} 
+      ) : showBulkUpload ? (
+        <BulkUploadScreen
           onBack={handleBack}
-          initialGrades={gradesData[selectedSubject] || {}}
-          onSaveGrades={(grades) => {
-            const updated = { ...gradesData, [selectedSubject]: grades };
-            saveGradesToFirebase(updated);
-          }}
+          onSaveSuccess={() => setShowBulkUpload(false)}
+          schoolSubjects={schoolSubjects}
+        />
+      ) : showOverview && selectedSubject ? (
+        <OverviewScreen
+          subject={selectedSubject}
+          onBack={handleBack}
+          students={students}
+        />
+      ) : selectedSubject ? (
+        <ErfassenScreen
+          subject={selectedSubject}
+          onBack={handleBack}
           students={students}
         />
       ) : (
         <HomeScreen 
           subjects={schoolSubjects}
-          onSelectSubject={handleSelectSubject}
           onSelectBeurteilung={() => setShowBeurteilung(true)}
+          onSelectBulkUpload={() => setShowBulkUpload(true)}
+          onSelectErfassen={handleSelectErfassen}
+          onSelectOverview={handleSelectOverview}
         />
       )}
     </SafeAreaProvider>
@@ -214,6 +263,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
+  boxWrapper: {
+    alignItems: "center",
+    gap: 8,
+  },
   box: {
     width: boxSize,
     height: boxSize,
@@ -232,6 +285,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
+  overviewButton: {
+    backgroundColor: "#9b59b6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    elevation: 2,
+  },
+  overviewButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
   beurteilungButton: {
     marginTop: 20,
     backgroundColor: "#e74c3c",
@@ -248,6 +313,25 @@ const styles = StyleSheet.create({
   beurteilungButtonText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  bulkUploadButton: {
+    marginTop: 10,
+    backgroundColor: "#3498db",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    marginBottom: 10,
+  },
+  bulkUploadButtonText: {
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "bold",
   },
 });
